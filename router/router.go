@@ -2,6 +2,7 @@ package router
 
 import (
 	"Hello-gin/api"
+	"Hello-gin/middleware"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -15,6 +16,8 @@ func NewRouter() *gin.Engine {
 	//r.Use(middleware.Cors())
 	//r.Use(middleware.CurrentUser())
 
+	// 跨域
+	r.Use(middleware.Cors())
 
 	//加载静态资源
 	r.LoadHTMLGlob("dist/index.html")
@@ -29,18 +32,14 @@ func NewRouter() *gin.Engine {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
-
+	//Test API
+	r.GET("/ping",api.Ping)
 
 	// 路由
 	v1 := r.Group("/api/v1")
 	{
-		v1.POST("ping", api.Ping)
 
-		// 用户登录
-		//v1.POST("user/register", api.UserRegister)
-
-		// 用户登录
-		//v1.POST("user/login", api.UserLogin)
+		v1.POST("/callout",api.Callout)
 
 		// 需要登录保护的
 		//auth := v1.Group("")
