@@ -16,70 +16,63 @@ func Ping(c *gin.Context) {
 	})
 }
 
-//
-func Callout(c *gin.Context){
-	fmt.Println("Starting the application...")
-	json := make(map[string]interface{}) //注意该结构接受的内容
-	err := c.BindJSON(&json)
-	if err != nil{
+//Callout service
+func Callout(c *gin.Context) {
+
+	recJson := make(map[string]interface{}) //注意该结构接受的内容
+	err := c.BindJSON(&recJson)
+	if err != nil {
 		c.JSON(500, gin.H{
 			"message": err.Error(),
 		})
 		return
 	}
 
-	dc := config.DensoConfig{}
-	err =dc.SetConf(json["env"].(string))
-	if err != nil{
-		 c.JSON(500, gin.H{
+	res, err := sendOut(recJson)
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		c.JSON(500, gin.H{
 			"message": err.Error(),
 		})
 		return
 	}
+	defer res.Body.Close()
+	//outMsg, err := json.Marshal(string(body))
 
-	url := "https://"+dc.Host+json["endPoint"].(string)
-	//method := json["method"].(string)
+	c.String(http.StatusOK, string(body))
 
-	client := &http.Client {}
-	req := &http.Request{}
-	payload := &strings.Reader{}
-	if json["body"] != nil {
-		payload = strings.NewReader(json["body"].(string))
-	}else{
-		payload = nil
-	}
+}
 
-	req, err = http.NewRequest(json["method"].(string), url, payload)
-
+//sendOut request will return string from db or service out
+func sendOut(json map[string]interface{}) (res *http.Response, err error) {
+	dc := config.DensoConfig{}
+	err = dc.SetConf(json["env"].(string))
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil, err
+	}
+
+	client := &http.Client{}
+	url := "https://" + dc.Host + json["endPoint"].(string)
+	payload := strings.NewReader(json["body"].(string))
+	method := json["method"].(string)
+	req, err := http.NewRequest(method, url, payload)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
 	}
 	req.Header.Add("Authorization", dc.Auth)
-	if json["body"] != nil {
-		req.Header.Add("Content-Type", json["content-type"].(string))
+	if payload != nil {
+		req.Header.Add("Content-Type", "application/json")
 	}
+	res, err = client.Do(req)
 
-
-	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil, err
 	}
-	defer res.Body.Close()
 
+	return res, nil
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	//fmt.Println(string(body))
-	c.JSON(res.StatusCode, gin.H{
-		"method": json["method"],
-		"endPoint": json["endPoint"],
-		"message": string(body),
-	})
-	// ...
-	fmt.Println("Terminating the application...")
 }
