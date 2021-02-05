@@ -32,3 +32,4 @@ config/config.go
 config/hostconfig.go
 config/hostconfig.go
 config/hostconfig.go
+config/hostconfig.go

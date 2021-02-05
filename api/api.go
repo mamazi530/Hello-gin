@@ -55,17 +55,27 @@ func sendOut(json map[string]interface{}) (res *http.Response, err error) {
 
 	client := &http.Client{}
 	url := "https://" + dc.Host + json["endPoint"].(string)
-	payload := strings.NewReader(json["body"].(string))
+
+	req := &http.Request{}
+
 	method := json["method"].(string)
-	req, err := http.NewRequest(method, url, payload)
+
+	if json["body"] != nil {
+		req, err = http.NewRequest(method, url, strings.NewReader(json["body"].(string)))
+		req.Header.Add("Content-Type", json["contentType"].(string))
+
+	} else {
+		req, err = http.NewRequest(method, url, nil)
+
+	}
+
+	req.Header.Add("Authorization", dc.Auth)
+
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	req.Header.Add("Authorization", dc.Auth)
-	if payload != nil {
-		req.Header.Add("Content-Type", "application/json")
-	}
+
 	res, err = client.Do(req)
 
 	if err != nil {
